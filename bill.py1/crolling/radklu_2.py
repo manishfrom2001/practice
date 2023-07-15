@@ -1,0 +1,132 @@
+from requests import Session
+from bs4 import BeautifulSoup as BS
+import pandas
+
+s = Session()
+s.headers['user-agent']="Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/115.0"
+url = 'https://www.rdklu.com/'
+base_url = 'https://www.rdklu.com{}'
+r = s.get(url)
+soup = BS(r.text,'html.parser')
+main_link_link =[]
+sub_catogery=[]
+whole_data = []
+jacket_link = []
+list_link_1 = []
+def main_category(url):
+    r = s.get(url)
+    soup = BS(r.text,'html.parser')
+    category_count = 0
+    for i in soup.find_all('div','mobile-nav__has-sublist')[0:7]:
+        main_link = i.find('a').get('href').replace('https://www.rdklu.com','')
+        if main_link:
+            main_link = 'https://www.rdklu.com'+main_link
+        else:
+            main_link = 'not given'
+        category_count += 1
+        print("Count___________________",category_count)
+        print("Main_Link:- ",main_link)
+        main_link_link.append(main_link)
+    # for j in soup.find_all('div','mobile-nav__has-sublist'):
+    #     jacket = 'https://www.rdklu.com'+j.find('a').get('href')
+    #     if jacket and jacket.startswith('https://www.rdklu.com/collections/rdklu-smart-jackets'):
+    #         # print("______",jacket)
+    #         jacket_link.append(jacket)
+    
+        
+
+def sub_main_link(url3):
+    r = s.get(url3)
+    soup = BS(r.text,'html.parser')
+    category_count = 0
+    for i in soup.find_all('div','grid__item small--one-half medium-up--one-fifth'):
+        sub_link = 'https://www.rdklu.com' + i.find('a').get('href')
+        category_count += 1
+        print("Count___________",category_count)
+        print(sub_link)
+        sub_catogery.append(sub_link)
+        # list_page(sub_link)
+
+
+def list_page(url1):
+    r = s.get(url1)
+    print('___++++++++==========_____',r.url)
+    soup = BS(r.text,'html.parser')
+    category_count = 0
+    for i in soup.find_all('a','grid-product__link'):
+        list_page_link ='https://www.rdklu.com/' +i.get('href')
+        category_count += 1
+        print("Count__++++____+++___",category_count)
+        print("List_Page_Link:- ",list_page_link)
+        list_link_1.append(list_page_link)
+
+    next = [_next for _next in soup.find_all('span','next')if "Next" in _next.text]
+    if next:
+        next_url = base_url.format(next[0].find('a').get('href'))
+        # print(next_url)
+        list_page(next_url)
+
+def product_page(url2):
+    r = s.get(url2)
+    soup = BS(r.text,'html.parser')
+    category_count = 0
+    name = soup.find('h1','h2 product-single__title')
+    if name:
+        name = name.text.strip()
+    else:
+        name = "nor given"
+    # print(name)
+    price = soup.find('span','product__price on-sale')
+    if price:
+        price = price.text.strip()
+    else:
+        price = "not given"
+    
+    size = soup.find('div','variant-wrapper variant-wrapper--dropdown js')
+    if size:
+        size = size.text.strip().replace('\n        \n        ','').replace('\n  \n\n\n         ','')
+    else:
+        size = 'not given'
+
+    product_discription = soup.find('div','rte')
+    if product_discription:
+        product_discription = product_discription.text.strip().replace('\n\n','').replace('\xa0','').replace('\n','')
+    else:
+        product_discription = "not given"
+    image_all_link = []
+    for i in soup.find_all('div','product__thumb-item'):
+        all_image_link = 'https://www.rdklu.com/' + i.find('a').get('href')
+        image_all_link.append(all_image_link)
+    # print(image_all_link)
+
+    item = dict()
+    item['Name'] = name
+    item["Price"] = price
+    item["All_Size"] = size
+    item["Product_Discription"] = product_discription
+    item["All_Image_Link"] = image_all_link
+    category_count += 1
+    # print("Product_Page_Link:- ",category_count)
+    whole_data.append(item)
+    print("Product_Page_link::-  ",r.url)
+
+
+    
+    
+
+
+main_category('https://www.rdklu.com/')
+for main in main_link_link:
+    sub_main_link(main)
+
+for page in sub_catogery:
+    list_page(page)
+
+for jacket_1 in main_link_link:
+    list_page(jacket_1)
+
+for list in list_link_1:
+    product_page(list)
+
+df = pandas.DataFrame(whole_data)
+df.to_excel("RADKLU_1.xlsx",index=False)
